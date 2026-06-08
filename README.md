@@ -16,27 +16,27 @@ A full-stack secure notes application with JWT authentication and role-based acc
 ## Features
 
 ### Backend
-- ✅ JWT Authentication (register/login/me)
-- ✅ Role-Based Access Control (USER / ADMIN)
-- ✅ Full CRUD on Notes with ownership checks
-- ✅ Zod input validation with detailed error messages
-- ✅ Rate limiting (20 req/15min on auth, 200 on general)
-- ✅ Helmet security headers
-- ✅ Pagination & server-side search on GET /notes
-- ✅ Prisma singleton pattern (no hot-reload leaks)
-- ✅ Structured JSON API responses (`success`, `data`, `error`)
-- ✅ Global error handling middleware
-- ✅ Seed script with demo accounts
+- JWT Authentication (register/login/me)
+-  Role-Based Access Control (USER / ADMIN)
+-  Full CRUD on Notes with ownership checks
+-  Zod input validation with detailed error messages
+-  Rate limiting (20 req/15min on auth, 200 on general)
+-  Helmet security headers
+-  Pagination & server-side search on GET /notes
+-  Prisma singleton pattern (no hot-reload leaks)
+-  Structured JSON API responses (`success`, `data`, `error`)
+-  Global error handling middleware
+-  Seed script with demo accounts
 
 ### Frontend
-- ✅ Protected routes with React Router
-- ✅ Auth context with localStorage persistence
-- ✅ Auto-logout on 401 responses
-- ✅ Debounced search
-- ✅ Skeleton loading states
-- ✅ Create / Edit (PATCH) / Delete notes via modal
-- ✅ Toast notifications
-- ✅ Admin sees all notes + owner email badges
+-  Protected routes with React Router
+-  Auth context with localStorage persistence
+-  Auto-logout on 401 responses
+-  Debounced search
+-  Skeleton loading states
+-  Create / Edit (PATCH) / Delete notes via modal
+-  Toast notifications
+-  Admin sees all notes + owner email badges
 
 ## Quick Start
 
