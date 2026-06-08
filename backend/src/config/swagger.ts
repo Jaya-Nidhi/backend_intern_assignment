@@ -1,0 +1,332 @@
+import swaggerJSDoc from 'swagger-jsdoc';
+
+const options: swaggerJSDoc.Options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'NoteVault API',
+      version: '1.0.0',
+      description: `
+## Secure Notes REST API
+
+Built with **Node.js + Express + TypeScript + Prisma + PostgreSQL**.
+
+### Authentication
+This API uses **JWT Bearer tokens**. After logging in, copy the token and click **Authorize** (🔒) above, then paste: \`Bearer <your_token>\`
+
+### Roles
+- **USER** — can manage their own notes
+- **ADMIN** — can view and delete any note, list all users
+
+### Demo Credentials
+| Role  | Email                | Password  |
+|-------|----------------------|-----------|
+| Admin | admin@example.com    | Admin123  |
+| User  | user@example.com     | User1234  |
+      `,
+      contact: {
+        name: 'NoteVault API Support',
+      },
+    },
+    servers: [
+      { url: 'http://localhost:5000', description: 'Development Server' },
+    ],
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+      schemas: {
+        // ── Auth ──────────────────────────────────────────────────────────
+        RegisterRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: { type: 'string', format: 'email', example: 'jane@example.com' },
+            password: {
+              type: 'string', minLength: 6, example: 'Secret123',
+              description: 'Min 6 chars, at least 1 uppercase letter and 1 number',
+            },
+            role: { type: 'string', enum: ['USER', 'ADMIN'], default: 'USER' },
+          },
+        },
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: { type: 'string', format: 'email', example: 'user@example.com' },
+            password: { type: 'string', example: 'User1234' },
+          },
+        },
+        LoginResponse: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            message: { type: 'string', example: 'Login successful' },
+            data: {
+              type: 'object',
+              properties: {
+                token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                user: { $ref: '#/components/schemas/User' },
+              },
+            },
+          },
+        },
+        User: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid', example: 'a1b2c3d4-...' },
+            email: { type: 'string', example: 'user@example.com' },
+            role: { type: 'string', enum: ['USER', 'ADMIN'] },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        // ── Notes ─────────────────────────────────────────────────────────
+        Note: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            title: { type: 'string', example: 'My Note' },
+            content: { type: 'string', example: 'This is the note content.' },
+            userId: { type: 'string', format: 'uuid' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+            user: {
+              type: 'object',
+              properties: { email: { type: 'string' } },
+            },
+          },
+        },
+        NoteRequest: {
+          type: 'object',
+          required: ['title', 'content'],
+          properties: {
+            title: { type: 'string', minLength: 1, maxLength: 100, example: 'Meeting Notes' },
+            content: { type: 'string', minLength: 1, maxLength: 5000, example: 'Discuss Q3 roadmap...' },
+          },
+        },
+        UpdateNoteRequest: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', minLength: 1, maxLength: 100, example: 'Updated Title' },
+            content: { type: 'string', minLength: 1, maxLength: 5000, example: 'Updated content...' },
+          },
+        },
+        // ── Common ────────────────────────────────────────────────────────
+        SuccessResponse: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            message: { type: 'string' },
+            data: { type: 'object' },
+          },
+        },
+        ErrorResponse: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: false },
+            error: { type: 'string', example: 'Error message here' },
+          },
+        },
+        ValidationError: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: false },
+            error: { type: 'string', example: 'Validation failed' },
+            details: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  field: { type: 'string', example: 'email' },
+                  message: { type: 'string', example: 'Invalid email address' },
+                },
+              },
+            },
+          },
+        },
+        PaginatedNotes: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            data: { type: 'array', items: { $ref: '#/components/schemas/Note' } },
+            pagination: {
+              type: 'object',
+              properties: {
+                total: { type: 'integer', example: 42 },
+                page: { type: 'integer', example: 1 },
+                limit: { type: 'integer', example: 20 },
+                totalPages: { type: 'integer', example: 3 },
+              },
+            },
+          },
+        },
+      },
+    },
+    // Apply bearer auth globally by default
+    security: [{ BearerAuth: [] }],
+    tags: [
+      { name: 'Auth', description: 'Registration, login, and user info' },
+      { name: 'Notes', description: 'CRUD operations on notes' },
+      { name: 'Health', description: 'Server health check' },
+    ],
+    paths: {
+      // ── Health ──────────────────────────────────────────────────────────
+      '/health': {
+        get: {
+          tags: ['Health'],
+          summary: 'Server health check',
+          security: [],
+          responses: {
+            200: {
+              description: 'Server is running',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'ok' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      env: { type: 'string', example: 'development' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      // ── Auth ────────────────────────────────────────────────────────────
+      '/api/v1/auth/register': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Register a new user',
+          security: [],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/RegisterRequest' } } },
+          },
+          responses: {
+            201: {
+              description: 'User registered successfully',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } },
+            },
+            409: { description: 'Email already registered', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            422: { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } },
+          },
+        },
+      },
+      '/api/v1/auth/login': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Login and receive JWT token',
+          security: [],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/LoginRequest' } } },
+          },
+          responses: {
+            200: {
+              description: 'Login successful — copy the token and use Authorize 🔒',
+              content: { 'application/json': { schema: { $ref: '#/components/schemas/LoginResponse' } } },
+            },
+            401: { description: 'Invalid credentials', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            422: { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } },
+          },
+        },
+      },
+      '/api/v1/auth/me': {
+        get: {
+          tags: ['Auth'],
+          summary: 'Get current authenticated user',
+          responses: {
+            200: { description: 'Current user info', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+            401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      '/api/v1/auth/users': {
+        get: {
+          tags: ['Auth'],
+          summary: 'List all users (Admin only)',
+          responses: {
+            200: { description: 'List of all users', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+            403: { description: 'Forbidden — Admin role required', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+      // ── Notes ────────────────────────────────────────────────────────────
+      '/api/v1/notes': {
+        get: {
+          tags: ['Notes'],
+          summary: 'Get notes (own notes for USER, all notes for ADMIN)',
+          parameters: [
+            { name: 'search', in: 'query', schema: { type: 'string' }, description: 'Search in title and content' },
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Notes per page' },
+          ],
+          responses: {
+            200: { description: 'Paginated list of notes', content: { 'application/json': { schema: { $ref: '#/components/schemas/PaginatedNotes' } } } },
+            401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+        post: {
+          tags: ['Notes'],
+          summary: 'Create a new note',
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/NoteRequest' } } },
+          },
+          responses: {
+            201: { description: 'Note created', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+            401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            422: { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } },
+          },
+        },
+      },
+      '/api/v1/notes/{id}': {
+        get: {
+          tags: ['Notes'],
+          summary: 'Get a single note by ID',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: {
+            200: { description: 'Note found', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+            403: { description: 'Forbidden — not your note', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: { description: 'Note not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+        patch: {
+          tags: ['Notes'],
+          summary: 'Update a note (owner or admin)',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateNoteRequest' } } },
+          },
+          responses: {
+            200: { description: 'Note updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+            403: { description: 'Forbidden', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: { description: 'Note not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            422: { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } } },
+          },
+        },
+        delete: {
+          tags: ['Notes'],
+          summary: 'Delete a note (owner or admin)',
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: {
+            200: { description: 'Note deleted', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } },
+            403: { description: 'Forbidden', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            404: { description: 'Note not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          },
+        },
+      },
+    },
+  },
+  apis: [],
+};
+
+export const swaggerSpec = swaggerJSDoc(options);
